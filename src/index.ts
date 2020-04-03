@@ -35,6 +35,10 @@ const countryColor = d3
 const getMaxAffected = data =>
   data.reduce((max, item) => (item.value > max ? item.value : max), 0);
 
+const getMinAffected = data => {
+  const maxValue = getMaxAffected(data);
+  return data.reduce((min, item) => (item.value < min ? item.value : min), maxValue);
+};
 const colorValue = (comunidad: string, data) => {
   const colorRange = [
     "#fddeda",
@@ -71,20 +75,8 @@ const colorValue = (comunidad: string, data) => {
 const calculateRadiusBasedOnAffectedCases = (d, data) => {
   const affectedRadiusScale = d3
     .scaleLinear()
-    .domain([
-      0,
-      1,
-      getMaxAffected(stats23March) / 35,
-      getMaxAffected(stats23March) / 30,
-      getMaxAffected(stats23March) / 25,
-      getMaxAffected(stats23March) / 20,
-      getMaxAffected(stats23March) / 15,
-      getMaxAffected(stats23March) / 10,
-      getMaxAffected(stats23March) / 5,
-      getMaxAffected(stats23March) / 2,
-      getMaxAffected(stats23March)
-    ])
-    .range([0, 2, 5, 10, 15, 20, 25, 30, 35, 40, 50]); // 50 pixel max radius, we could calculate it relative to width and height
+    .domain([0, getMinAffected(stats), getMaxAffected(stats23March)])
+    .range([0,2, 50]); // 50 pixel max radius, we could calculate it relative to width and height
 
   const entry = data.find(item => item.name === d.name);
 
@@ -100,9 +92,7 @@ const svg = d3
 
 const aProjection = d3Composite
   .geoConicConformalSpain()
-  // Let's make the map bigger to fit in our resolution
   .scale(3300)
-  // Let's center the map
   .translate([500, 400]);
 
 const geoPath = d3.geoPath().projection(aProjection);
@@ -118,7 +108,6 @@ svg
   })
   .attr("stroke-width", 1)
   .attr("stroke", "black")
-  // data loaded from json file
   .attr("d", geoPath as any);
 
 svg.selectAll();
@@ -149,14 +138,12 @@ const updateRadius = data => {
     .attr("fill", d => colorValue(d.name, data));
 };
 
-// Here with the buttom in HTML "1 March", the map of infected people in that date will be displayed
 document
   .getElementById("1March")
   .addEventListener("click", function handleInfected1March() {
     updateRadius(stats);
   });
 
-// Here with the buttom in HTML "23 March", the map of infected people in that date will be displayed
 document
   .getElementById("23March")
   .addEventListener("click", function handleInfected23March() {

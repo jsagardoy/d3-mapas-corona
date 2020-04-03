@@ -33345,6 +33345,13 @@ var getMaxAffected = function getMaxAffected(data) {
   }, 0);
 };
 
+var getMinAffected = function getMinAffected(data) {
+  var maxValue = getMaxAffected(data);
+  return data.reduce(function (min, item) {
+    return item.value < min ? item.value : min;
+  }, maxValue);
+};
+
 var colorValue = function colorValue(comunidad, data) {
   var colorRange = ["#fddeda", "#f8beb6", "#f09e94", "#e67d72", "#da5b52", "#cb3234", "#e44a46", "#dc4340", "#d33a3a", "#cb3234", "#c3292e", "#ba1f28", "#b21322"];
   var entry = data.find(function (item) {
@@ -33362,7 +33369,7 @@ var colorValue = function colorValue(comunidad, data) {
 };
 
 var calculateRadiusBasedOnAffectedCases = function calculateRadiusBasedOnAffectedCases(d, data) {
-  var affectedRadiusScale = d3.scaleLinear().domain([0, 1, getMaxAffected(_stats.stats23March) / 35, getMaxAffected(_stats.stats23March) / 30, getMaxAffected(_stats.stats23March) / 25, getMaxAffected(_stats.stats23March) / 20, getMaxAffected(_stats.stats23March) / 15, getMaxAffected(_stats.stats23March) / 10, getMaxAffected(_stats.stats23March) / 5, getMaxAffected(_stats.stats23March) / 2, getMaxAffected(_stats.stats23March)]).range([0, 2, 5, 10, 15, 20, 25, 30, 35, 40, 50]); // 50 pixel max radius, we could calculate it relative to width and height
+  var affectedRadiusScale = d3.scaleLinear().domain([0, getMinAffected(_stats.stats), getMaxAffected(_stats.stats23March)]).range([0, 2, 50]); // 50 pixel max radius, we could calculate it relative to width and height
 
   var entry = data.find(function (item) {
     return item.name === d.name;
@@ -33371,15 +33378,12 @@ var calculateRadiusBasedOnAffectedCases = function calculateRadiusBasedOnAffecte
 };
 
 var svg = d3.select("body").append("svg").attr("width", 1024).attr("height", 800).attr("style", "background-color: #FFFFFF");
-var aProjection = d3Composite.geoConicConformalSpain() // Let's make the map bigger to fit in our resolution
-.scale(3300) // Let's center the map
-.translate([500, 400]);
+var aProjection = d3Composite.geoConicConformalSpain().scale(3300).translate([500, 400]);
 var geoPath = d3.geoPath().projection(aProjection);
 var geojson = topojson.feature(spainjson, spainjson.objects.ESP_adm1);
 svg.selectAll("path").data(geojson["features"]).enter().append("path").attr("fill", function (d, i) {
   return countryColor(i);
-}).attr("stroke-width", 1).attr("stroke", "black") // data loaded from json file
-.attr("d", geoPath);
+}).attr("stroke-width", 1).attr("stroke", "black").attr("d", geoPath);
 svg.selectAll();
 svg.selectAll("circle").data(_communities.latLongCommunities).enter().append("circle").transition().duration(2000).attr("class", "affected-marker").attr("r", function (d) {
   return calculateRadiusBasedOnAffectedCases(d, _stats.stats);
@@ -33401,13 +33405,11 @@ var updateRadius = function updateRadius(data) {
   }).attr("fill", function (d) {
     return colorValue(d.name, data);
   });
-}; // Here with the buttom in HTML "1 March", the map of infected people in that date will be displayed
-
+};
 
 document.getElementById("1March").addEventListener("click", function handleInfected1March() {
   updateRadius(_stats.stats);
-}); // Here with the buttom in HTML "23 March", the map of infected people in that date will be displayed
-
+});
 document.getElementById("23March").addEventListener("click", function handleInfected23March() {
   updateRadius(_stats.stats23March);
 });
